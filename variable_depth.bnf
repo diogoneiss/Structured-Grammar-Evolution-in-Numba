@@ -1,6 +1,7 @@
 <start> ::= <expr>
 
 <expr> ::= <number>
+          | <var>
           | ( <op> <expr> <expr> )
           | ( <uop> <expr> )
 
@@ -27,3 +28,5 @@
        | '/'
 
 <uop> ::= 'abs'
+
+<var> ::= 'x'
