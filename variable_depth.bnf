@@ -1,0 +1,29 @@
+<start> ::= <expr>
+
+<expr> ::= <number>
+          | ( <op> <expr> <expr> )
+          | ( <uop> <expr> )
+
+<number> ::= <integer>
+
+<integer> ::= ( <digit> )
+            | ( <non-zero-digit> <digit> )
+            | ( <non-zero-digit> <digit> <digit> )
+
+<digit> ::= 0 | <non-zero-digit>
+
+<non-zero-digit> ::= 1
+                   | 2
+                   | 3
+                   | 4
+                   | 5
+                   | 6
+                   | 7
+                   | 8
+                   | 9
+<op> ::= '+'
+       | '-'
+       | '*'
+       | '/'
+
+<uop> ::= 'abs'
