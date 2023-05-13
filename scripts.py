@@ -106,7 +106,6 @@ def deep_copy_genotype(genotype, empty_genotype):
     return empty_genotype
 
 
-
 def read_bnf_file(file_path):
     # read file as string
     with open(file_path, 'r') as f:
@@ -237,18 +236,22 @@ def create_grammar_from_bnf(bnf_file, depth=1, variables=2):
     return productions, non_terminals, terminals
 
 
-productions, non_terminals, terminals = create_grammar_from_bnf("variable_depth.bnf", 5, 2)
+def test_grammar_creation():
+    productions, non_terminals, terminals = create_grammar_from_bnf("variable_depth.bnf", 5, 2)
 
-pretty_print_dict(productions)
+    pretty_print_dict(productions)
 
 
-terminals = get_terminals(productions)
+def test_terminal_and_nonterminal():
+    productions, _, _ = create_grammar_from_bnf("variable_depth.bnf", 5, 2)
 
-print("terminals")
-print(terminals)
-non_terminals = set(productions.keys())
-print("non_terminals")
-print(non_terminals)
+    terminals = get_terminals(productions)
+
+    print("terminals")
+    print(terminals)
+    non_terminals = set(productions.keys())
+    print("non_terminals")
+    print(non_terminals)
 
 
 # In[4]:
@@ -257,6 +260,8 @@ print(non_terminals)
 def find_recursive_and_non_recursive_terminals(grammar):
     recursive_terminals = set()
     non_recursive_terminals = set()
+    non_terminals = set(grammar.keys())
+    terminals = get_terminals(grammar)
 
     def is_recursive(nt, visited):
         if nt in visited:
@@ -280,10 +285,12 @@ def find_recursive_and_non_recursive_terminals(grammar):
     return recursive_terminals, non_recursive_terminals
 
 
-recursive_terminals, non_recursive_terminals = find_recursive_and_non_recursive_terminals(productions)
+def test_recursive_terminals_calculation():
+    productions, _, _ = create_grammar_from_bnf("variable_depth.bnf", 5, 2)
+    recursive_terminals, non_recursive_terminals = find_recursive_and_non_recursive_terminals(productions)
 
-display("Recursive terminals:", recursive_terminals)
-display("Non-recursive terminals:", non_recursive_terminals)
+    display("Recursive terminals:", recursive_terminals)
+    display("Non-recursive terminals:", non_recursive_terminals)
 
 
 # In[5]:
@@ -310,6 +317,7 @@ def calculate_recursive_productions(non_terminal, grammar, non_recursive_product
 
 
 def get_non_recursive_expansions(grammar):
+    non_terminals = set(grammar.keys())
     non_recursive_expansions_set = OrderedDict()
     for nt in non_terminals:
         non_recursive_expansions_set[nt] = calculate_non_recursive_productions(nt, grammar)
@@ -318,20 +326,25 @@ def get_non_recursive_expansions(grammar):
 
 def get_recursive_expansions(grammar, non_recursive_expansions_dict):
     recursive_expansions_set = OrderedDict()
+    non_terminals = set(grammar.keys())
+
     for nt in non_terminals:
         recursive_expansions_set[nt] = calculate_recursive_productions(nt, grammar, non_recursive_expansions_dict)
     return recursive_expansions_set
 
 
-# create the non-recursive dictionary for each non-terminal
-non_recursive_expansions = get_non_recursive_expansions(productions)
-recursive_expansions = get_recursive_expansions(productions, non_recursive_expansions)
+def test_recursive_expansions_calculation():
+    productions, _, _ = create_grammar_from_bnf("variable_depth.bnf", 5, 2)
+    # create the non-recursive dictionary for each non-terminal
+    non_recursive_expansions = get_non_recursive_expansions(productions)
+    recursive_expansions = get_recursive_expansions(productions, non_recursive_expansions)
 
-print("Non recursive expansions per terminal:")
-pretty_print_dict(non_recursive_expansions)
+    print("Non recursive expansions per terminal:")
+    pretty_print_dict(non_recursive_expansions)
 
-print("Recursive expansions per terminal:")
-pretty_print_dict(recursive_expansions)
+    print("Recursive expansions per terminal:")
+    pretty_print_dict(recursive_expansions)
+
 
 # In[6]:
 
@@ -376,13 +389,6 @@ def calculate_non_terminal_references(grammar, non_terminals_set):
     return count_references, is_referenced_by
 
 
-# Usage example
-count_refs, ref_by = calculate_non_terminal_references(productions, non_terminals)
-print("count_refs")
-
-pretty_print_dict(count_refs)
-print("Ref by: ")
-pretty_print_dict(ref_by)
 
 
 # In[7]:
@@ -409,11 +415,23 @@ def get_total_references_of_current_production(count_references_by_prod, nt):
     return np.sum(np.array(list(count_references_by_prod[nt_str].values())))
 
 
-nt = "<digit>"  # Replace this with a non-terminal from your grammar
-nt = '<non-zero-digit>'
-references = find_references(nt, '<start>', ref_by, count_refs)
+def test_reference_counting(nt="<digit>"):
+    print("Testing reference counting for non terminal: ", nt)
+    productions, non_terminals, terminals = create_grammar_from_bnf("variable_depth.bnf", 5, 2)
+    # Replace this with a non-terminal from your grammar
+    count_refs, ref_by = calculate_non_terminal_references(productions, non_terminals)
+    references = find_references(nt, '<start>', ref_by, count_refs)
 
-display(references)
+    print("References: ", references)
+
+    # Usage example
+    count_refs, ref_by = calculate_non_terminal_references(productions, non_terminals)
+    print("count_refs")
+
+    pretty_print_dict(count_refs)
+    print("Ref by: ")
+    pretty_print_dict(ref_by)
+
 
 
 # In[8]:
@@ -513,21 +531,6 @@ class Node:
         self.children = children_list
 
 
-"""
-genotype, grammar = create_genotype(max_depth=3)
-#pretty_print_dict(grammar)
-tree = Tree(genotype, grammar)
-print("Tree created!")
-
-while tree.expand_next():
-    pass
-
-
-print("Done")
-display(tree)
-"""
-
-
 # In[9]:
 
 
@@ -576,7 +579,8 @@ def create_full_tree(grammar, genotype, first_symbol, ref_by_dict, count_refs_di
 
 def create_individual_probabilistic(grammar, max_depth, genotype, symbol, non_terminals_set, depth):
     stack = [(symbol, depth)]
-
+    non_recursive_expansions_dict = get_non_recursive_expansions(grammar)
+    recursive_expansions = get_recursive_expansions(grammar, non_recursive_expansions_dict)
     is_terminal_cache = {s not in non_terminals_set for s in grammar}
     unique_depths = set()
     non_recursive_expansions_dict = get_non_recursive_expansions(grammar)
@@ -664,7 +668,9 @@ def create_genotype(grammar_file='variable_depth.bnf', max_depth=6, variables_co
     return new_genotype, desired_depth_grammar
 
 
-create_genotype(max_depth=3)
+def test_create_genotype():
+    create_genotype(max_depth=3)
+
 
 # In[10]:
 
@@ -685,10 +691,6 @@ class NodeData:
         self.label = label
         self.children = List.empty_list(types.int64)
         self.is_terminal = False
-
-
-# Global hash table to store NodeData instances
-nodes = Dict.empty(key_type=types.int64, value_type=NodeData.class_type.instance_type)
 
 
 # Function to create a new NodeData instance and store it in the global hash table
@@ -835,21 +837,6 @@ def generate_and_expand(node_table, depth=4, variables_count=2):
     return tree
 
 
-# Other functions as needed
-
-create_node('<start>', nodes)
-"""
-apply_rule(0, nodes, grammar, ['<expr>'])
-second_production = grammar['<expr>'][2]
-apply_rule(1, nodes, grammar, second_production)
-third_production = grammar['<op>'][0]
-apply_rule(3, nodes, grammar, third_production)
-fourth_production = grammar['<expr1>'][1]
-apply_rule(4, nodes, grammar, fourth_production)
-apply_rule(5, nodes, grammar, fourth_production)
-"""
-tree = generate_and_expand(nodes, depth=6, variables_count=2)
-
 # In[11]:
 
 
@@ -984,14 +971,20 @@ def evaluate(node_id: int, node_table, variables_dict) -> float:
     return nan
 
 
-variables = Dict.empty(key_type=types.unicode_type, value_type=types.float64)
+def test_print_tree_and_evaluate():
+    # Global hash table to store NodeData instances
+    nodes = Dict.empty(key_type=types.int64, value_type=NodeData.class_type.instance_type)
 
-# Add variables to the dictionary
-variables['x'] = 42.0
-variables['y'] = 10.0
-# print_nodes(nodes)
-print(simple_repr(0, nodes))
-evaluate(0, nodes, variables)
+    variables = Dict.empty(key_type=types.unicode_type, value_type=types.float64)
+    create_node('<start>', nodes)
+    tree = generate_and_expand(nodes, depth=6, variables_count=2)
+
+    # Add variables to the dictionary
+    variables['x'] = 42.0
+    variables['y'] = 10.0
+    # print_nodes(nodes)
+    print(simple_repr(0, nodes))
+    evaluate(0, nodes, variables)
 
 
 # In[12]:
@@ -1058,7 +1051,7 @@ def evaluate_slow(node: Node, variables):
                 elif op == "/":
                     # safe division
                     if op2 == 0:
-                        return 0;
+                        return 0
                     return op1 / op2
 
     elif node.label == "<number>":
@@ -1135,8 +1128,6 @@ def test_n_creation():
     print("Unique genotypes: ", len(set(all_hashes)))
     print("First genotype: ", genotypes[0])
 
-
-test_n_creation()
 
 # In[15]:
 
@@ -1251,9 +1242,6 @@ def test_mutation():
     print("Hash: ", genotype_hash(genotypes[0]))
 
 
-test_mutation()
-
-
 # In[16]:
 
 
@@ -1316,9 +1304,6 @@ def test_crossover():
     assert_equality_of_hashes(hash_b_before, hash_b_after)
 
 
-test_crossover()
-
-
 # In[17]:
 
 
@@ -1351,11 +1336,15 @@ def create_variable_dict(variable_names, variable_values):
 
 NODE_TYPE = NodeData.class_type.instance_type
 
-variable_2 = create_variable_dict(['x', 'y'], [42, 10])
-print(variable_2)
+
+def test_variable_dict():
+    variable_2 = create_variable_dict(['x', 'y'], [42, 10])
+    print(variable_2)
 
 
-def test_evaluate(variables, max_depth=5):
+def test_evaluate(variables=None, max_depth=5):
+    if variables is None:
+        variables = create_variable_dict(['x', 'y'], [42, 10])
     iterations = 20
     variable_count = len(variables)
     genotypes, grammar = create_n_genotypes(iterations, max_depth, variable_count)
@@ -1363,9 +1352,6 @@ def test_evaluate(variables, max_depth=5):
     for genotype in genotypes:
         create_and_eval_tree(genotype, grammar, variables, NODE_TYPE)
         print("_______")
-
-
-test_evaluate(variable_2, 5)
 
 
 # In[56]:
@@ -1380,28 +1366,32 @@ def create_variable_names(variable_count):
     return variable_names
 
 
-@njit
-def calculate_fitness(variables_values, y_values, genotype, grammar, node_value_type, EMPTY_GENOTYPE, print_tree=False):
+#@njit
+def calculate_fitness(variables_values, y_values, genotype, grammar, node_value_type, EMPTY_GENOTYPE, print_debug=True, print_tree=False):
     empty_genotype = EMPTY_GENOTYPE.copy()
 
     empty_genotype_hash = genotype_hash(EMPTY_GENOTYPE)
     new_genotype = deep_copy_genotype(genotype, empty_genotype)
 
-    # param_hash = genotype_hash(genotype)
-    # new_genotype_hash = genotype_hash(new_genotype)
-    # report = "Before fitness: " + str(param_hash) + " and copy " + str(new_genotype_hash) + " and empty " + str(empty_genotype_hash)
-    # print(report)
+    if print_debug:
+        param_hash = genotype_hash(genotype)
+        new_genotype_hash = genotype_hash(new_genotype)
+        report = "Before tree creation: " + str(param_hash) + " and copy " + str(new_genotype_hash) + " and empty " + str(empty_genotype_hash)
+        print(report)
+
     new_nodes = create_full_tree_from_genome(new_genotype, grammar, node_value_type)
 
-    # param_hash = genotype_hash(genotype)
-    # new_genotype_hash = genotype_hash(new_genotype)
-    # empty_genotype_hash = genotype_hash(EMPTY_GENOTYPE)
+    if print_debug:
+        param_hash = genotype_hash(genotype)
+        new_genotype_hash = genotype_hash(new_genotype)
+        empty_genotype_hash = genotype_hash(EMPTY_GENOTYPE)
 
-    # report = "After fitness: " + str(param_hash) + " and copy " + str(new_genotype_hash) + " and empty " + str(empty_genotype_hash)
-    # print(report)
+        report = "After tree creation: " + str(param_hash) + " and copy " + str(new_genotype_hash) + " and empty " + str(empty_genotype_hash)
+        print(report)
     if print_tree:
         print(simple_repr(0, new_nodes))
         print("_______")
+
     # create variables
     variable_count = len(variables_values[0])
     variable_names = create_variable_names(variable_count)
@@ -1412,41 +1402,35 @@ def calculate_fitness(variables_values, y_values, genotype, grammar, node_value_
     results = List.empty_list(types.float64)
     for i in range(evaluation_cases):
         current_variable_values = []
+        #print(f"Len evaluation cases: {evaluation_cases}, len variables_values: {len(variables_values)} and len variables_values[i]: {len(variables_values[i])}")
         for j in range(variable_count):
-            current_variable_values.append(variables_values[i][j])
+            if i >= variables_values.shape[0]:
+                print("Error: i >= len(variables_values) " + str(i) + " >= " + str(variables_values.shape[0]))
+            if j >= variables_values.shape[1]:
+                print("Error: j >= len(variables_values[i]) " + str(j) + " >= " + str(variables_values.shape[1]))
+            current_variable_values.append(variables_values[i, j])
 
         variable_dict = create_variable_dict(variable_names, current_variable_values)
         y_predicted = evaluate(0, new_nodes, variable_dict)
-
+        if i >= len(y_values):
+            print("Error: i >= len(y_values) " + str(i) + " >= " + str(len(y_values)))
         y_correct = y_values[i]
         squared_diff = (y_predicted - y_correct) ** 2
         results.append(y_predicted)
         sum += squared_diff
 
+        if print_debug:
+            param_hash = genotype_hash(genotype)
+            new_genotype_hash = genotype_hash(new_genotype)
+            empty_genotype_hash = genotype_hash(EMPTY_GENOTYPE)
+
+            report = "After fitness: " + str(param_hash) + " and copy " + str(new_genotype_hash) + " and empty " + str(empty_genotype_hash)
+            print(report)
     rmse = np.sqrt(sum / evaluation_cases)
     return rmse, results
 
 
-genotype, grammar = create_genotype(max_depth=5, variables_count=2)
-
-test_data = np.array([
-    [1, 2, 3],
-    [3, 4, 5]
-], dtype=np.float64)
-test_y = [1, 2]
-
-test_data = np.array([[-1.23592861, -1.36410559],
-                      [-0.60259712, -0.60758157],
-                      [2.80419539, 2.66919459],
-                      [-0.22628393, -2.97797806],
-                      [2.0402239, -0.59282888]])
-
-test_y = np.array([6.51571868, 1.14283484, 40.67709954, 7.42636336, 9.6026114])
-
-genotype_test, grammar = create_genotype(max_depth=5, variables_count=2)
-
-
-def test_fitness(genotype_test):
+def _test_single_fitness(genotype_test, test_data, test_y, grammar, NODE_TYPE, GENOTYPE_TYPE):
     # Call the calculate_fitness function
     rmse, y_predicted_values = calculate_fitness(test_data, test_y, genotype_test, grammar, NODE_TYPE, GENOTYPE_TYPE)
 
@@ -1457,15 +1441,25 @@ def test_fitness(genotype_test):
     print(f"RMSE: {rmse}")
 
 
-test_fitness(genotype_test)
-print("Should return equal values and hashes...")
-test_fitness(genotype_test)
+def test_fitness():
+    test_data = np.array([[-1.23592861, -1.36410559],
+                          [-0.60259712, -0.60758157],
+                          [2.80419539, 2.66919459],
+                          [-0.22628393, -2.97797806],
+                          [2.0402239, -0.59282888]])
+
+    test_y = np.array([6.51571868, 1.14283484, 40.67709954, 7.42636336, 9.6026114])
+
+    genotype_test, grammar = create_genotype(max_depth=5, variables_count=2)
+    _test_single_fitness(genotype_test, test_data, test_y, grammar, NODE_TYPE, GENOTYPE_TYPE)
+    print("Should return equal values and hashes...")
+    _test_single_fitness(genotype_test, test_data, test_y, grammar, NODE_TYPE, GENOTYPE_TYPE)
 
 
 # In[20]:
 
 
-@njit(parallel=True)
+#@njit(parallel=True)
 def calculate_all_fitnesses(genotypes: List[dict],
                             variables_values: np.ndarray,
                             y_values: np.ndarray,
@@ -1475,8 +1469,8 @@ def calculate_all_fitnesses(genotypes: List[dict],
     num_genotypes = len(genotypes)
     fitness_list = np.empty(num_genotypes, dtype=np.float64)
 
-    for i in prange(num_genotypes):
-        genotype = genotypes[i].copy()
+    for i in range(num_genotypes):
+        genotype = genotypes[i]
         rmse, _ = calculate_fitness(variables_values, y_values, genotype, grammar, node_value_type, empty_genotype)
         fitness_list[i] = rmse
 
@@ -1504,9 +1498,6 @@ def test_calculate_all_fitnesses():
             print("hash pre: ", hash_pre_fitness[i], " hash post: ", hash_post_fitness[i])
 
     assert diff == 0, "Genotypes changed after fitness calculation"
-
-
-test_calculate_all_fitnesses()
 
 
 # In[21]:
@@ -1573,4 +1564,53 @@ def test_selection_tournament():
     best_elements_global = [fitness_list[idx] for idx in best_itens]
     print("Global best elements: ", best_elements_global)
 
-test_selection_tournament()
+
+# In[22]:
+def print_resumed_genotype(genotype: Dict):
+    # calculate an unique hash for the genotype
+    hash_genotype = genotype_hash(genotype)
+
+    print(f"{hash_genotype}: ______")
+    keys = list(genotype.keys())
+    alphabetical_keys = sorted(keys)
+    for key in alphabetical_keys:
+        value = genotype[key]
+        real_len = min(len(value), 4)
+        print(f"{key}: {value[:real_len]}", end=" ")
+
+
+if __name__ == '__main__':
+
+
+    print("\n\nTESTING GRAMMAR RELATED __________")
+    test_grammar_creation()
+    test_terminal_and_nonterminal()
+
+    print("\n\nTESTING REFERENCE COUNTING RELATED __________")
+
+    test_reference_counting()
+    test_reference_counting('<expr>')
+
+    print("\n\nTESTING GENOTYPE CREATION RELATED __________")
+
+    test_create_genotype()
+
+    test_print_tree_and_evaluate()
+
+    test_n_creation()
+    print("\n\nTESTING CROSSOVER AND MUTATION __________")
+
+    test_mutation()
+    test_crossover()
+    print("\n\nTESTING EVALUATE RELATED __________")
+
+    test_variable_dict()
+    test_evaluate()
+    print("\n\nTESTING FITNESS RELATED __________")
+
+    test_fitness()
+    test_calculate_all_fitnesses()
+
+    print("\n\nTESTING SELECTION RELATED __________")
+
+    test_selection_tournament()
