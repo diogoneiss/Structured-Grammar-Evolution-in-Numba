@@ -781,7 +781,7 @@ def expand_next(node_id, node_table, genome, productions):
     # get the next production index
     production_index = production_indices.pop(0)
 
-    # get the production for the desired non-terminal
+
     new_production = productions[node.label][production_index]
 
     apply_rule(expansion_node_id, node_table, productions, new_production)
@@ -1210,13 +1210,14 @@ def mutate_genotype_inplace(mutable_genotype: Dict, grammar: Dict, mutation_rate
         productions_length = len(productions)
         for j in range(len(gene)):
             # Decide whether to mutate this gene based on the mutation_rate_operators
-            if np.random.random() < mutation_rate_operators:
+            # the check for productions_length > 1 is to avoid mutating a gene that has only one production, leading to broken grammar
+            if np.random.random() < mutation_rate_operators and productions_length > 1:
                 # Choose a random production index different from the current gene index
-                new_production_index = random_int(0, productions_length)
+                new_production_index = random_int(0, productions_length-1)
                 attempts = 0
                 max_attempts = 10
                 while new_production_index == gene[j] and attempts < max_attempts:
-                    new_production_index = random_int(0, productions_length)
+                    new_production_index = random_int(0, productions_length-1)
                     attempts += 1
                 if attempts < max_attempts:
                     gene[j] = new_production_index
@@ -1230,12 +1231,12 @@ def mutate_genotype_inplace(mutable_genotype: Dict, grammar: Dict, mutation_rate
 
 
 def test_mutation():
-    genotypes, grammar = create_n_genotypes(1, 5, 2)
+    genotypes, grammar = create_n_genotypes(1, 2, 2)
     print("Genotypes before mutation: ")
     print(genotypes[0])
     print("Hash: ", genotype_hash(genotypes[0]))
 
-    mutate_genotypes_3(genotypes, grammar, 0.5, 0.5)
+    mutate_genotypes_3(genotypes, grammar, 1, 1)
 
     print("\n\nGenotypes after mutation: ")
     print(genotypes[0])
@@ -1249,7 +1250,7 @@ def test_mutation():
 def create_mask(length: int, crossover_probability: float) -> List[int]:
     mask = List.empty_list(types.int64)
     for _ in range(length):
-        mask.append(1 if random.random() < crossover_probability else 0)
+        mask.append(1 if rand() < crossover_probability else 0)
     # print(mask)
     return mask
 
@@ -1272,7 +1273,7 @@ def crossover_numba(a: Dict, b: Dict, crossover_probability: float, genotype_typ
         idx += 1
 
     result = list([child1, child2])
-    print("Finished crossover")
+    #print("Finished crossover")
     return result
 
 
@@ -1311,7 +1312,9 @@ def test_crossover():
 def create_full_tree_from_genome(genotype, grammar, node_value_type, print_tree=False) -> Dict:
     new_nodes = Dict.empty(key_type=types.int64, value_type=node_value_type)
     create_node('<start>', new_nodes)
+
     load_genotype(new_nodes, genotype, grammar)
+
     if print_tree:
         print(simple_repr(0, new_nodes))
     return new_nodes
@@ -1366,8 +1369,8 @@ def create_variable_names(variable_count):
     return variable_names
 
 
-#@njit
-def calculate_fitness(variables_values, y_values, genotype, grammar, node_value_type, EMPTY_GENOTYPE, print_debug=True, print_tree=False):
+@njit
+def calculate_fitness(variables_values, y_values, genotype, grammar, node_value_type, EMPTY_GENOTYPE, print_debug=False, print_tree=False):
     empty_genotype = EMPTY_GENOTYPE.copy()
 
     empty_genotype_hash = genotype_hash(EMPTY_GENOTYPE)
@@ -1419,13 +1422,13 @@ def calculate_fitness(variables_values, y_values, genotype, grammar, node_value_
         results.append(y_predicted)
         sum += squared_diff
 
-        if print_debug:
-            param_hash = genotype_hash(genotype)
-            new_genotype_hash = genotype_hash(new_genotype)
-            empty_genotype_hash = genotype_hash(EMPTY_GENOTYPE)
+    if print_debug:
+        param_hash = genotype_hash(genotype)
+        new_genotype_hash = genotype_hash(new_genotype)
+        empty_genotype_hash = genotype_hash(EMPTY_GENOTYPE)
 
-            report = "After fitness: " + str(param_hash) + " and copy " + str(new_genotype_hash) + " and empty " + str(empty_genotype_hash)
-            print(report)
+        report = "After fitness: " + str(param_hash) + " and copy " + str(new_genotype_hash) + " and empty " + str(empty_genotype_hash)
+        print(report)
     rmse = np.sqrt(sum / evaluation_cases)
     return rmse, results
 
@@ -1459,7 +1462,7 @@ def test_fitness():
 # In[20]:
 
 
-#@njit(parallel=True)
+@njit(parallel=True)
 def calculate_all_fitnesses(genotypes: List[dict],
                             variables_values: np.ndarray,
                             y_values: np.ndarray,
