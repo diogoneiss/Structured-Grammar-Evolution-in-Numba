@@ -1476,7 +1476,7 @@ def calculate_all_fitnesses(genotypes: List[dict],
     num_genotypes = len(genotypes)
     fitness_list = np.empty(num_genotypes, dtype=np.float64)
 
-    for i in range(num_genotypes):
+    for i in prange(num_genotypes):
         genotype = genotypes[i]
         rmse, _ = calculate_fitness(variables_values, y_values, genotype, grammar, node_value_type, empty_genotype)
         fitness_list[i] = rmse
