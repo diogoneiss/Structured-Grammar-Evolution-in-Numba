@@ -13,13 +13,15 @@ import random
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-from numba import jit, prange, njit
+from numba import jit, prange, njit, config
 from numba import int64, types, typed
 from numba.experimental import jitclass
 from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
 from numba.core.errors import NumbaWarning
 import warnings
 from numba.typed import Dict, List
+
+
 
 warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
 warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
@@ -178,7 +180,8 @@ def parse_bnf(grammar_str, depth=1, variables=1):
     for recursive_rule in RECURSIVE_PRODUCTIONS:
         fix_recursive_production(recursive_rule)
 
-    variable_cases = ['x', 'y', 'z', 'w', 'k']
+    variable_cases = ['x', 'y', 'z', '{', '|', '}', '~', '\x7f', '\x80', '\x81']
+
     for var_index in range(variables + 1):
         terminal_vars = variable_cases[:var_index]
         productions["<var>"] = terminal_vars
@@ -1198,7 +1201,7 @@ def mutate_genotype_old(mutable_genotype, grammar, mutation_rate_operators: floa
         mutable_genotype[key] = gene
 
 
-@njit
+#@njit
 def mutate_genotype_inplace(mutable_genotype: Dict, grammar: Dict, mutation_rate_operators: float):
     genotype_keys = List(mutable_genotype.keys())
     count = 0
@@ -1222,9 +1225,9 @@ def mutate_genotype_inplace(mutable_genotype: Dict, grammar: Dict, mutation_rate
                 if attempts < max_attempts:
                     gene[j] = new_production_index
                     count += 1
-                else:
-                    print(
-                        f"At key {key}: Could not mutate gene {gene} at index {j} after {max_attempts} attempts, only have {productions_length} productions: {productions}")
+                #else:
+                #    print(
+                #        f"At key {key}: Could not mutate gene {gene} at index {j} after {max_attempts} attempts, only have {productions_length} productions: {productions}")
 
         mutable_genotype[key] = gene
     return count
@@ -1407,11 +1410,12 @@ def calculate_fitness(variables_values, y_values, genotype, grammar, node_value_
         current_variable_values = []
         #print(f"Len evaluation cases: {evaluation_cases}, len variables_values: {len(variables_values)} and len variables_values[i]: {len(variables_values[i])}")
         for j in range(variable_count):
-            if i >= variables_values.shape[0]:
-                print("Error: i >= len(variables_values) " + str(i) + " >= " + str(variables_values.shape[0]))
-            if j >= variables_values.shape[1]:
-                print("Error: j >= len(variables_values[i]) " + str(j) + " >= " + str(variables_values.shape[1]))
-            current_variable_values.append(variables_values[i, j])
+            if i >= len(variables_values):
+                print("Error: i >= len(variables_values) " + str(i) + " >= " + str(len(variables_values)))
+            if j >= len(variables_values[0]):
+                print("Error: j >= len(variables_values[i]) " + str(j) + " >= " + str(len(variables_values[0])))
+            current_variable_values.append(variables_values[i][j])
+
 
         variable_dict = create_variable_dict(variable_names, current_variable_values)
         y_predicted = evaluate(0, new_nodes, variable_dict)
