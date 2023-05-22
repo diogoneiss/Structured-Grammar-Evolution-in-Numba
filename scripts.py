@@ -20,6 +20,7 @@ from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWa
 from numba.core.errors import NumbaWarning
 import warnings
 from numba.typed import Dict, List
+from math import nan, sin
 
 
 
@@ -843,7 +844,6 @@ def generate_and_expand(node_table, depth=4, variables_count=2):
 # In[11]:
 
 
-from math import nan
 
 
 @njit
@@ -906,6 +906,8 @@ def evaluate(node_id: int, node_table, variables_dict) -> float:
 
                 if uop == 'abs':
                     return abs(operand)
+                elif uop == 'sin':
+                    return sin(operand)
                 else:
                     print("Error, unknown unary operator")
                     return nan
