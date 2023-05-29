@@ -20,7 +20,7 @@ from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWa
 from numba.core.errors import NumbaWarning
 import warnings
 from numba.typed import Dict, List
-from math import nan, sin
+from math import nan, sin, exp, log10
 
 
 
@@ -908,6 +908,17 @@ def evaluate(node_id: int, node_table, variables_dict) -> float:
                     return abs(operand)
                 elif uop == 'sin':
                     return sin(operand)
+                elif uop == 'exp':
+                    if operand > 50:
+                        return float(1000000)
+                    elif operand < -50:
+                        return float(0.000001)
+                    return exp(operand)
+                elif uop == 'log':
+                    if operand <= 0:
+                        return 0
+                    return log10(operand)
+
                 else:
                     print("Error, unknown unary operator")
                     return nan
@@ -926,7 +937,7 @@ def evaluate(node_id: int, node_table, variables_dict) -> float:
                 elif op == "/":
                     # safe division
                     if op2 == 0:
-                        return 0;
+                        return 1000000
                     return op1 / op2
                 else:
                     print("Error, unknown binary operator: ", op)

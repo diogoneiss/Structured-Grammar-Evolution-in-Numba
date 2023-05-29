@@ -9,7 +9,6 @@
 
 <integer> ::= ( <digit> )
             | ( <non-zero-digit> <digit> )
-            | ( <non-zero-digit> <digit> <digit> )
 
 <digit> ::= 0 | <non-zero-digit>
 
@@ -27,6 +26,6 @@
        | '*'
        | '/'
 
-<uop> ::= 'sin'
+<uop> ::= 'log' | 'sin' 
 
 <var> ::= 'x'
