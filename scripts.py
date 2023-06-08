@@ -1300,10 +1300,10 @@ def print_genotypes(genotypes):
 
 
 def test_crossover():
-    n = 2
+    n = 10
     depth = 2
-
-    genotypes_test, grammar = create_n_genotypes(n, depth, 2)
+    variables = 2
+    genotypes_test, grammar = create_n_genotypes(n, depth, variables)
     print("Genotypes before crossover: ")
     print_genotypes(genotypes_test[0:2])
     hash_a_before = genotype_hash(genotypes_test[0])
